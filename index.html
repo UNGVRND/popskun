@@ -250,20 +250,21 @@ button:hover{
    ✅ KILL HISTORY PANEL
    ========================= */
 #historyPanel{
- position:absolute;   /* not floating */
- right:20px;
- top:220px;
- width:320px;
- max-height:460px;
- overflow-y:auto;
- background:#111;
- border:2px solid #00ffcc;
- border-radius:15px;
- padding:12px;
- box-shadow:0 0 20px rgba(0,255,204,.5);
- font-family:'Orbitron', sans-serif;
- z-index:5;
+  position:fixed;     /* stays on screen */
+  left:20px;         /* move right from left panel */
+  top:320px;          /* move down */
+  width:320px;
+  max-height:460px;
+  overflow-y:auto;
+  background:#111;
+  border:2px solid #00ffcc;
+  border-radius:15px;
+  padding:12px;
+  box-shadow:0 0 20px rgba(0,255,204,.5);
+  font-family:'Orbitron', sans-serif;
+  z-index:9999;
 }
+
 
 #historyPanel h3{
  text-align:center;
