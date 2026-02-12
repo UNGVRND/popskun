@@ -401,6 +401,13 @@ button:hover{
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  // 🔥 Firebase Server Time Sync
+let serverOffset = 0;
+
+db.ref(".info/serverTimeOffset").on("value", snap => {
+  serverOffset = snap.val() || 0;
+});
+
 </script>
 
 <script>
@@ -606,7 +613,9 @@ function update(){
     return;
   }
 
-  const d=new Date(t)-new Date();
+  const nowServer = Date.now() + serverOffset;
+const d = t - nowServer;
+
 
   if(d<=0){
    timer.textContent="SPAWNED!";
