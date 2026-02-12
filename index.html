@@ -247,12 +247,10 @@ button:hover{
 }
 
 /* =========================
-   ✅ KILL HISTORY PANEL (FIXED)
+   ✅ KILL HISTORY PANEL
    ========================= */
-
-/* IMPORTANT: only ONE #historyPanel (you had 2 before) */
 #historyPanel{
- position:absolute;          /* ✅ not floating anymore */
+ position:absolute;   /* not floating */
  right:20px;
  top:220px;
  width:320px;
@@ -312,17 +310,9 @@ button:hover{
  box-shadow:0 0 18px rgba(255,255,255,.25);
 }
 
-.btn-clear{
- background:#ff3b3b;
- color:#fff;
-}
+.btn-clear{ background:#ff3b3b; color:#fff; }
+.btn-refresh{ background:#0094ff; color:#fff; }
 
-.btn-refresh{
- background:#0094ff;
- color:#fff;
-}
-
-/* ✅ PIN input (inside panel) */
 #pinInput{
  width:100%;
  height:38px;
@@ -368,7 +358,6 @@ button:hover{
     <button class="small-btn btn-clear" onclick="clearHistory()">CLEAR</button>
   </div>
 
-  <!-- ✅ NO POPUP PIN: type here -->
   <input id="pinInput" type="password" placeholder="Admin PIN">
   <div id="pinError"></div>
 </div>
@@ -388,34 +377,36 @@ button:hover{
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
+  /* ✅ YOUR FIREBASE CONFIG (keep yours) */
   const firebaseConfig = {
-  apiKey: "AIzaSyBYH_oMRvuHi34c2UOAkzH9w9OZjJ1W1WU",
-  authDomain: "popskun.firebaseapp.com",
-  databaseURL: "https://popskun-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "popskun",
-  storageBucket: "popskun.firebasestorage.app",
-  messagingSenderId: "103649197475",
-  appId: "1:103649197475:web:bc21a09a08684e27362e16"
-};
-
+    apiKey: "AIzaSyDoorwXRVfitvWJ6aldC2C2l3jOXAXKXF4",
+    authDomain: "ian-tan.firebaseapp.com",
+    databaseURL: "https://ian-tan-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ian-tan",
+    storageBucket: "ian-tan.firebasestorage.app",
+    messagingSenderId: "708212500342",
+    appId: "1:708212500342:web:fb0d881c28aaecb2a87c57"
+  };
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-  // 🔥 Firebase Server Time Sync
-let serverOffset = 0;
 
-db.ref(".info/serverTimeOffset").on("value", snap => {
-  serverOffset = snap.val() || 0;
-});
+  /* ✅ SERVER TIME SYNC (fix +12 sec issues) */
+  let serverOffset = 0;
+  let serverReady = false;
 
+  db.ref(".info/serverTimeOffset").on("value", snap => {
+    serverOffset = snap.val() || 0;
+    serverReady = true;
+  });
 </script>
 
 <script>
 /* =========================
-   ✅ SETTINGS (EDIT THESE)
+   ✅ SETTINGS
    ========================= */
-const HISTORY_LIMIT = 200;         // show last 200 logs (set 500 if you want)
-const ADMIN_PIN = "1234";          // change this PIN so only you can clear history
+const HISTORY_LIMIT = 200;     // show last 200 logs
+const ADMIN_PIN = "1234";      // change this
 
 let inputLock=false;
 document.addEventListener("focusin",e=>{if(e.target.type==="datetime-local") inputLock=true;});
@@ -447,10 +438,15 @@ let alerted={};
 let lastBeepSecond=null;
 
 function speak(text){
- const u=new SpeechSynthesisUtterance(text);
- speechSynthesis.speak(u);
+ try{
+   const u=new SpeechSynthesisUtterance(text);
+   speechSynthesis.speak(u);
+ }catch(e){}
 }
 
+/* =========================
+   ✅ BUILD CARDS
+   ========================= */
 bosses.forEach(b=>{
  const card=document.createElement("div");
  card.className="card";
@@ -471,6 +467,9 @@ bosses.forEach(b=>{
  container.appendChild(card);
 });
 
+/* =========================
+   ✅ TOP BUTTONS
+   ========================= */
 sortBtn.onclick=()=>{
  autoSort=!autoSort;
  sortBtn.textContent="AUTO SORT: "+(autoSort?"ON":"OFF");
@@ -484,17 +483,8 @@ soundBtn.onclick=()=>{
 };
 
 /* =========================
-   ✅ LOG HISTORY FUNCTIONS
+   ✅ HISTORY
    ========================= */
-function addKillLog(id, killTime){
-  const boss = bosses.find(b => b.id === id);
-  db.ref("history").push({
-    bossId: id,
-    name: boss ? boss.name : ("BOSS " + id),
-    killedAt: killTime.getTime()
-  });
-}
-
 function renderHistory(items){
   const historyList = document.getElementById("historyList");
   historyList.innerHTML = "";
@@ -524,7 +514,6 @@ function refreshHistory(){
   });
 }
 
-/* ✅ NEW clearHistory: NO prompt(), NO alert() */
 function clearHistory(){
   const pinInput = document.getElementById("pinInput");
   const pinError = document.getElementById("pinError");
@@ -548,7 +537,6 @@ function clearHistory(){
   });
 }
 
-/* Live sync history to ALL users */
 db.ref("history").limitToLast(HISTORY_LIMIT).on("value", snapshot=>{
   const data = snapshot.val();
   if(!data) return renderHistory([]);
@@ -557,24 +545,57 @@ db.ref("history").limitToLast(HISTORY_LIMIT).on("value", snapshot=>{
 });
 
 /* =========================
-   ✅ YOUR EXISTING TIMER LOGIC
+   ✅ TIMER STORAGE (FIREBASE)
    ========================= */
-function now(id,h){
-  const killTime = new Date();
-  setNext(id,h,killTime);
-  addKillLog(id, killTime);
-}
+let firebaseBosses = {};
 
-function manual(id,h){
- const v=document.getElementById(id+"-input").value;
- if(!v)return alert("Enter time");
- setNext(id,h,new Date(v));
-}
+db.ref("bosses").on("value", snapshot => {
+  firebaseBosses = snapshot.val() || {};
+});
 
+/* =========================
+   ✅ SET NEXT (MANUAL)
+   ========================= */
 function setNext(id,h,k){
   const nextTime = k.getTime() + h * 3600000;
   db.ref("bosses/" + id).set(nextTime);
   alerted[id] = false;
+}
+
+/* =========================
+   ✅ BUTTON ACTIONS
+   ========================= */
+function now(id,h){
+  // prevent clicking before server time is ready
+  if(!serverReady){
+    // small message only (no breaking)
+    const pinError = document.getElementById("pinError");
+    if(pinError){
+      pinError.style.color = "#ffd700";
+      pinError.textContent = "⏳ Wait 1 second (syncing server time)...";
+      setTimeout(()=>{ pinError.textContent=""; }, 1500);
+    }
+    return;
+  }
+
+  const serverNow = Date.now() + serverOffset;
+  const nextTime = serverNow + h * 3600000;
+
+  db.ref("bosses/" + id).set(nextTime);
+  alerted[id] = false;
+
+  const boss = bosses.find(b => b.id === id);
+  db.ref("history").push({
+    bossId: id,
+    name: boss ? boss.name : ("BOSS " + id),
+    killedAt: serverNow
+  });
+}
+
+function manual(id,h){
+  const v=document.getElementById(id+"-input").value;
+  if(!v) return alert("Enter time");
+  setNext(id,h,new Date(v));
 }
 
 function resetAll(){
@@ -582,12 +603,9 @@ function resetAll(){
   db.ref("bosses").remove();
 }
 
-let firebaseBosses = {};
-
-db.ref("bosses").on("value", snapshot => {
-  firebaseBosses = snapshot.val() || {};
-});
-
+/* =========================
+   ✅ MAIN UPDATE LOOP
+   ========================= */
 function update(){
  if(inputLock) return;
  let soonest=null,soonId=null,sortData=[];
@@ -613,9 +631,9 @@ function update(){
     return;
   }
 
+  // ✅ server-time countdown
   const nowServer = Date.now() + serverOffset;
-const d = t - nowServer;
-
+  const d = t - nowServer;
 
   if(d<=0){
    timer.textContent="SPAWNED!";
@@ -623,7 +641,7 @@ const d = t - nowServer;
    if(!alerted[b.id]){
      if(alarmOn){
        sound.currentTime=0;
-       sound.play();
+       sound.play().catch(()=>{});
        speak(b.name+" has spawned");
      }
      alerted[b.id]=true;
@@ -635,10 +653,10 @@ const d = t - nowServer;
   sortData.push({id:b.id,time:d});
   if(soonest===null||d<soonest){soonest=d;soonId=b.id;}
 
-  const h=String(Math.floor(d/3600000)).padStart(2,"0");
-  const m=String(Math.floor(d%3600000/60000)).padStart(2,"0");
-  const s=String(Math.floor(d%60000/1000)).padStart(2,"0");
-  timer.textContent=`${h}:${m}:${s}`;
+  const hh=String(Math.floor(d/3600000)).padStart(2,"0");
+  const mm=String(Math.floor(d%3600000/60000)).padStart(2,"0");
+  const ss=String(Math.floor(d%60000/1000)).padStart(2,"0");
+  timer.textContent=`${hh}:${mm}:${ss}`;
   next.textContent="Next: "+new Date(t).toLocaleString();
  });
 
@@ -663,7 +681,7 @@ const d = t - nowServer;
     if(lastBeepSecond!==sec){
       if(alarmOn){
         sound.currentTime=0;
-        sound.play();
+        sound.play().catch(()=>{});
       }
       lastBeepSecond=sec;
     }
